@@ -1,0 +1,128 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define NUM_CANDIDATES 6
+#define MAX_LEN 100
+#define MAX_FINALISTS 4
+
+// Structure to hold candidate info
+struct Candidate {
+    char name[MAX_LEN];
+    int id;
+    int passed; // 1 for passed, 0 for not passed
+};
+
+// Structure to hold extended Milliways member info
+struct MilliwaysMember {
+    char name[MAX_LEN];
+    int id;
+    char nickname[MAX_LEN];
+    char education[MAX_LEN];
+    float height; // in meters
+    float weight; // in kilograms
+    char blood_type[3];
+    char allergy[MAX_LEN];
+    char hobby[MAX_LEN];
+    char sns[MAX_LEN];
+    float bmi;
+};
+
+void display_bmi_category(float bmi) {
+    switch ((int)(bmi / 5)) {
+        case 3:
+        case 4:
+            printf("BMI Category: Underweight\n");
+            break;
+        case 5:
+        case 6:
+            printf("BMI Category: Normal\n");
+            break;
+        case 7:
+            printf("BMI Category: Overweight\n");
+            break;
+        default:
+            printf("BMI Category: Obese\n");
+            break;
+    }
+}
+
+int main() {
+    // Candidate basic info (copied from earlier problem)
+    struct Candidate candidate_arr[NUM_CANDIDATES] = {
+        {"Jiyeon Park", 123456, 1},
+        {"Ethan Smith", 234567, 1},
+        {"Helena Silva", 345678, 1},
+        {"Liam Wilson", 456789, 1},
+        {"Minji Lee", 567890, 0},
+        {"Donghyun Kim", 678901, 0}
+    };
+
+    // Initialize Milliways member array
+    struct MilliwaysMember milliways_arr[MAX_FINALISTS];
+    int j = 0;
+
+    for (int i = 0; i < NUM_CANDIDATES; i++) {
+        if (candidate_arr[i].passed) {
+            struct MilliwaysMember member;
+            strcpy(member.name, candidate_arr[i].name);
+            member.id = candidate_arr[i].id;
+
+            printf("\nInterviews for %s (ID: %d)\n", member.name, member.id);
+            printf("Nickname: ");
+            fgets(member.nickname, MAX_LEN, stdin);
+            member.nickname[strcspn(member.nickname, "\n")] = '\0';
+
+            printf("Education: ");
+            fgets(member.education, MAX_LEN, stdin);
+            member.education[strcspn(member.education, "\n")] = '\0';
+
+            printf("Height (in meters): ");
+            scanf("%f", &member.height);
+
+            printf("BMI: ");
+            scanf("%f", &member.bmi);
+            member.weight = member.bmi * (member.height * member.height);
+            getchar(); // consume leftover newline
+
+            printf("Blood Type: ");
+            fgets(member.blood_type, 3, stdin);
+            getchar(); // consume newline
+
+            printf("Allergy: ");
+            fgets(member.allergy, MAX_LEN, stdin);
+            member.allergy[strcspn(member.allergy, "\n")] = '\0';
+
+            printf("Hobbies: ");
+            fgets(member.hobby, MAX_LEN, stdin);
+            member.hobby[strcspn(member.hobby, "\n")] = '\0';
+
+            printf("SNS: ");
+            fgets(member.sns, MAX_LEN, stdin);
+            member.sns[strcspn(member.sns, "\n")] = '\0';
+
+            milliways_arr[j++] = member;
+        }
+    }
+
+    printf("\n###########################################\n");
+    printf("#     Milliways Member Final Profiles     #\n");
+    printf("###########################################\n");
+
+    for (int i = 0; i < j; i++) {
+        printf("\nName: %s\n", milliways_arr[i].name);
+        printf("ID: %d\n", milliways_arr[i].id);
+        printf("Nickname: %s\n", milliways_arr[i].nickname);
+        printf("Education: %s\n", milliways_arr[i].education);
+        printf("Height: %.2fm\n", milliways_arr[i].height);
+        printf("Weight (calculated): %.2fkg\n", milliways_arr[i].weight);
+        printf("BMI: %.2f\n", milliways_arr[i].bmi);
+        display_bmi_category(milliways_arr[i].bmi);
+        printf("Blood Type: %s\n", milliways_arr[i].blood_type);
+        printf("Allergy: %s\n", milliways_arr[i].allergy);
+        printf("Hobbies: %s\n", milliways_arr[i].hobby);
+        printf("SNS: %s\n", milliways_arr[i].sns);
+    }
+
+    return 0;
+}
