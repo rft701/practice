@@ -1,0 +1,234 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define MAX_MEMBERS 10
+#define MAX_NICKNAME_LENGTH 50
+#define MAX_TRAUMA_DESC_LENGTH 200
+#define MAX_RESPONSE_LENGTH 100
+#define MAX_QUESTIONS 5
+#define MAX_NAME_LENGTH 50
+
+typedef struct {
+    char nickname[MAX_NICKNAME_LENGTH];
+    int age;
+    char trauma_desc[MAX_TRAUMA_DESC_LENGTH];
+} MemberTrauma;
+
+typedef struct {
+    int question_id;
+    char question_content[MAX_TRAUMA_DESC_LENGTH];
+} CounselingQuestion;
+
+typedef struct {
+    char nickname[MAX_NICKNAME_LENGTH];
+    int question_id;
+    char response[MAX_RESPONSE_LENGTH];
+} CounselingSession;
+
+MemberTrauma trauma_data[MAX_MEMBERS];
+CounselingQuestion counseling_questions[MAX_QUESTIONS] = {
+    {1, "In what situations have you experienced this trauma?"},
+    {2, "How has this situation affected your daily life and emotions?"},
+    {3, "How have you tried to overcome this trauma?"},
+    {4, "What emotions do you associate with this trauma?"},
+    {5, "What kind of support do you think is necessary to overcome this trauma?"}
+};
+CounselingSession counseling_sessions[MAX_MEMBERS * MAX_QUESTIONS];
+int trauma_count = 0, session_count = 0;
+
+void displayMainMenu();
+void displayTrainingMenu();
+void displayTraumaManagementMenu();
+void overcomeTrauma();
+void traumaInputMenu();
+void counselingSessionMenu();
+void viewCounselingSession();
+int findMemberIndexByNickname(char *nickname);
+int generateRandomQuestionIDs();
+void pauseCounselingSession(int *question_id);
+void resumeCounselingSession(int *question_id);
+
+int main() {
+    char choice;
+
+    while (1) {
+        displayMainMenu();
+        printf("Enter your choice (0, Q to quit): ");
+        choice = getchar();
+        getchar();
+
+        if (choice == '0' || choice == 'Q' || choice == 'q') {
+            break;
+        }
+
+        switch (choice) {
+            case '1':
+                displayTrainingMenu();
+                break;
+            case '2':
+                overcomeTrauma();
+                break;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+void displayMainMenu() {
+    printf("\n=== Main Menu ===\n");
+    printf("1. Training\n");
+    printf("2. Self-Management and Teamwork\n");
+    printf("0. Exit\n");
+    printf("Q. Quit\n");
+}
+
+void displayTrainingMenu() {
+    printf("\n=== Training Menu ===\n");
+    printf("1. Physical Strength & Knowledge\n");
+    printf("2. Self-Management and Teamwork\n");
+    printf("0. Go Back\n");
+}
+
+void displayTraumaManagementMenu() {
+    printf("\n=== Trauma Management Menu ===\n");
+    printf("A. Input Trauma Data\n");
+    printf("B. Start Counseling Session\n");
+    printf("C. View Counseling Session\n");
+    printf("0. Go Back\n");
+}
+
+void overcomeTrauma() {
+    char choice;
+    
+    while (1) {
+        displayTraumaManagementMenu();
+        printf("Enter your choice (0 to go back): ");
+        choice = getchar();
+        getchar();
+
+        if (choice == '0') {
+            break;
+        }
+
+        switch (choice) {
+            case 'A':
+                traumaInputMenu();
+                break;
+            case 'B':
+                counselingSessionMenu();
+                break;
+            case 'C':
+                viewCounselingSession();
+                break;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+}
+
+void traumaInputMenu() {
+    char nickname[MAX_NICKNAME_LENGTH];
+    char trauma_desc[MAX_TRAUMA_DESC_LENGTH];
+    int index;
+
+    printf("\nEnter member nickname: ");
+    fgets(nickname, MAX_NICKNAME_LENGTH, stdin);
+    nickname[strcspn(nickname, "\n")] = 0;
+
+    index = findMemberIndexByNickname(nickname);
+
+    if (index != -1) {
+        printf("\nEnter trauma description for %s: ", nickname);
+        fgets(trauma_desc, MAX_TRAUMA_DESC_LENGTH, stdin);
+        trauma_desc[strcspn(trauma_desc, "\n")] = 0;
+
+        strcpy(trauma_data[index].trauma_desc, trauma_desc);
+        printf("Trauma data successfully entered for %s.\n", nickname);
+    } else {
+        printf("Nickname not found. Please try again.\n");
+    }
+}
+
+void counselingSessionMenu() {
+    char nickname[MAX_NICKNAME_LENGTH];
+    int index;
+
+    printf("\nEnter member nickname for counseling: ");
+    fgets(nickname, MAX_NICKNAME_LENGTH, stdin);
+    nickname[strcspn(nickname, "\n")] = 0;
+
+    index = findMemberIndexByNickname(nickname);
+
+    if (index != -1) {
+        printf("\nStarting counseling session for %s:\n", nickname);
+        for (int i = 0; i < 3; i++) {
+            int question_id = generateRandomQuestionIDs();
+            printf("Question: %s\n", counseling_questions[question_id - 1].question_content);
+            printf("Your response: ");
+            char response[MAX_RESPONSE_LENGTH];
+            fgets(response, MAX_RESPONSE_LENGTH, stdin);
+            response[strcspn(response, "\n")] = 0;
+
+            if (strlen(response) > 0 && strlen(response) <= MAX_RESPONSE_LENGTH) {
+                strcpy(counseling_sessions[session_count].nickname, nickname);
+                counseling_sessions[session_count].question_id = question_id;
+                strcpy(counseling_sessions[session_count].response, response);
+                session_count++;
+            } else {
+                printf("Invalid response. Please provide a valid response.\n");
+                i--;
+            }
+        }
+    } else {
+        printf("Nickname not found. Please try again.\n");
+    }
+}
+
+void viewCounselingSession() {
+    char nickname[MAX_NICKNAME_LENGTH];
+    int index;
+
+    printf("\nEnter member nickname to view counseling session: ");
+    fgets(nickname, MAX_NICKNAME_LENGTH, stdin);
+    nickname[strcspn(nickname, "\n")] = 0;
+
+    index = findMemberIndexByNickname(nickname);
+
+    if (index != -1) {
+        printf("\nCounseling session for %s (%s):\n", nickname, trauma_data[index].trauma_desc);
+        for (int i = 0; i < session_count; i++) {
+            if (strcmp(counseling_sessions[i].nickname, nickname) == 0) {
+                printf("Question %d: %s\n", counseling_sessions[i].question_id, counseling_questions[counseling_sessions[i].question_id - 1].question_content);
+                printf("Response: %s\n", counseling_sessions[i].response);
+            }
+        }
+    } else {
+        printf("Nickname not found. Please try again.\n");
+    }
+}
+
+int findMemberIndexByNickname(char *nickname) {
+    for (int i = 0; i < trauma_count; i++) {
+        if (strcmp(trauma_data[i].nickname, nickname) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int generateRandomQuestionIDs() {
+    srand(time(NULL));
+    return rand() % MAX_QUESTIONS + 1;
+}
+
+void pauseCounselingSession(int *question_id) {
+    printf("\nPausing session at question %d.\n", *question_id);
+}
+
+void resumeCounselingSession(int *question_id) {
+    printf("\nResuming session from question %d.\n", *question_id);
+}
