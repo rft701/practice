@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <math.h>
+
+#define MAX_CATEGORIES 9
+#define MAX_EXAMS 10
+
+char categories[MAX_CATEGORIES][20] = {
+    "Physical Strength", "Knowledge", "Self-Management", "Teamwork",
+    "Korean Language", "Vocal", "Dance", "Visual", "Acting"
+};
+
+int examDates[MAX_CATEGORIES];
+int scheduled[MAX_CATEGORIES] = {0};
+int trainingStart = 0;
+int today = 20250514;
+
+int getDays(int from, int to) {
+    int y1 = from / 10000, m1 = (from / 100) % 100, d1 = from % 100;
+    int y2 = to / 10000, m2 = (to / 100) % 100, d2 = to % 100;
+    return (y2 - y1) * 365 + (m2 - m1) * 30 + (d2 - d1);
+}
+
+int eligible(int days) {
+    return days >= 30 && days <= 100;
+}
+
+void scheduleExam(int index) {
+    int date;
+    printf("Enter exam date for %s (YYYYMMDD): ", categories[index]);
+    scanf("%d", &date);
+    int days = getDays(trainingStart, date);
+    if (eligible(days)) {
+        examDates[index] = date;
+        scheduled[index] = 1;
+        printf("Exam for %s scheduled on %d\n", categories[index], date);
+    } else {
+        printf("Invalid date. Must be 30-100 days after training start.\n");
+    }
+}
+
+void checkReminders() {
+    for (int i = 0; i < MAX_CATEGORIES; i++) {
+        if (scheduled[i]) {
+            int daysLeft = getDays(today, examDates[i]);
+            if (daysLeft >= 0 && daysLeft <= 10)
+                printf("Reminder: %s exam is in %d day(s).\n", categories[i], daysLeft);
+        }
+    }
+}
+
+void assignRoom() {
+    for (int i = 0; i < MAX_CATEGORIES; i++) {
+        if (scheduled[i] && examDates[i] == today) {
+            int room = rand() % 10 + 1;
+            printf("Today is the exam for %s. Assigned Room: %d\n", categories[i], room);
+        }
+    }
+}
+
+int main() {
+    printf("Enter training start date (YYYYMMDD): ");
+    scanf("%d", &trainingStart);
+
+    int passed[4] = {0};
+
+    scheduleExam(0);
+    passed[0] = 1;
+    scheduleExam(1);
+    passed[1] = 1;
+
+    if (passed[0] && passed[1]) {
+        scheduleExam(2);
+        passed[2] = 1;
+        scheduleExam(3);
+        passed[3] = 1;
+    }
+
+    if (passed[2] && passed[3]) {
+        for (int i = 4; i < MAX_CATEGORIES; i++) {
+            scheduleExam(i);
+        }
+    }
+
+    printf("\nExam Reservations:\n");
+    for (int i = 0; i < MAX_CATEGORIES; i++) {
+        if (scheduled[i])
+            printf("%s: %d\n", categories[i], examDates[i]);
+    }
+
+    printf("\n--- Reminders ---\n");
+    checkReminders();
+
+    printf("\n--- Today's Exams ---\n");
+    assignRoom();
+
+    return 0;
+}
