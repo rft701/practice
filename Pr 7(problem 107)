@@ -1,0 +1,132 @@
+#include <stdio.h>
+#include <string.h>
+
+#define NUM_FAILED 2
+#define NUM_SUCCESS 4
+#define MAX_MSG 5
+#define MSG_LEN 100
+
+const char* memorial01_arr[NUM_FAILED] = {
+    "Noah Lee,20010101,200123,HIPHOP,noah@example.com",
+    "Sora Kim,20020504,200234,CLASSICAL,sora@example.com"
+};
+
+char rollingpp01_arr[NUM_FAILED][MAX_MSG][MSG_LEN] = {{{0}}};
+
+void get_name_from_info(const char* info, char* name) {
+    int i = 0;
+    while (info[i] != ',' && info[i] != '\0') {
+        name[i] = info[i];
+        i++;
+    }
+    name[i] = '\0';
+}
+
+void get_email_from_info(const char* info, char* email) {
+    int i = strlen(info) - 1;
+    while (i >= 0 && info[i] != ',') {
+        i--;
+    }
+    strcpy(email, &info[i + 1]);
+}
+
+void list_unsuccessful() {
+    printf("\n--- Unsuccessful Candidates ---\n");
+    for (int i = 0; i < NUM_FAILED; i++) {
+        char name[30];
+        get_name_from_info(memorial01_arr[i], name);
+        printf("%d. %s\n", i + 1, name);
+    }
+    printf("------------------------------\n");
+}
+
+void add_message(int recipient_index, const char* sender) {
+    int slot = -1;
+    for (int i = 0; i < MAX_MSG; i++) {
+        if (strlen(rollingpp01_arr[recipient_index][i]) == 0) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == -1) {
+        printf("Message limit reached for this candidate.\n");
+        return;
+    }
+    char message[80];
+    printf("Enter message to %s: ", sender);
+    fgets(message, sizeof(message), stdin);
+    message[strcspn(message, "\n")] = 0;
+    snprintf(rollingpp01_arr[recipient_index][slot], MSG_LEN, "\"%s\": \"%s\"", sender, message);
+}
+
+void view_messages(int index) {
+    char name[30], email[50];
+    get_name_from_info(memorial01_arr[index], name);
+    get_email_from_info(memorial01_arr[index], email);
+
+    printf("\nRolling Paper for %s\n", name);
+    printf("Email: %s\n", email);
+
+    int has_msg = 0;
+    for (int i = 0; i < MAX_MSG; i++) {
+        if (strlen(rollingpp01_arr[index][i]) > 0) {
+            printf("- %s\n", rollingpp01_arr[index][i]);
+            has_msg = 1;
+        }
+    }
+    if (!has_msg) {
+        printf("No messages yet.\n");
+    }
+
+    char send;
+    printf("Would you like to send an email to %s? (Y/N): ", name);
+    scanf(" %c", &send);
+    getchar();
+    if (send == 'Y' || send == 'y') {
+        printf("Email has been sent to %s.\n", email);
+    } else {
+        printf("Email not sent.\n");
+    }
+}
+
+int main() {
+    char senders[NUM_SUCCESS][30] = {"Jiyeon Park", "Ethan Smith", "Helena Silva", "Liam Wilson"};
+
+    for (int i = 0; i < NUM_SUCCESS; i++) {
+        printf("\n>>> %s, choose a candidate to send a rolling paper:\n", senders[i]);
+        list_unsuccessful();
+        int target;
+        printf("Enter candidate number: ");
+        scanf("%d", &target);
+        getchar();
+        if (target < 1 || target > NUM_FAILED) {
+            printf("Invalid selection.\n");
+            i--;
+            continue;
+        }
+        add_message(target - 1, senders[i]);
+    }
+
+    while (1) {
+        printf("\nWould you like to view rolling papers? (Y/N): ");
+        char view;
+        scanf(" %c", &view);
+        getchar();
+        if (view == 'N' || view == 'n') {
+            break;
+        }
+        list_unsuccessful();
+        int view_target;
+        printf("Select candidate number to view messages: ");
+        scanf("%d", &view_target);
+        getchar();
+        if (view_target >= 1 && view_target <= NUM_FAILED) {
+            view_messages(view_target - 1);
+        } else {
+            printf("Invalid selection.\n");
+        }
+    }
+
+    printf("\nMemory preservation complete. Thank you.\n");
+    return 0;
+}
