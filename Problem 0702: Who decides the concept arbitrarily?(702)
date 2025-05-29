@@ -1,0 +1,311 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#define MAX_DATA 100
+#define MAX_QUEUE_SIZE 4
+#define MAX_STR_LEN 128
+
+// Concept info structure
+typedef struct {
+    char group[MAX_STR_LEN];
+    char concept[MAX_STR_LEN];
+    char description[MAX_STR_LEN];
+} KpopConcept;
+
+// Queue structure for strings (group or concept)
+typedef struct {
+    char *items[MAX_QUEUE_SIZE];
+    int front;
+    int rear;
+    int size;
+} StringQueue;
+
+// Stack structure for strings (group or concept)
+typedef struct {
+    char *items[MAX_QUEUE_SIZE];
+    int top;
+} StringStack;
+
+// Function prototypes
+void initQueue(StringQueue *q);
+int enqueue(StringQueue *q, const char *str);
+char* dequeue(StringQueue *q);
+int isQueueEmpty(const StringQueue *q);
+void freeQueue(StringQueue *q);
+
+void initStack(StringStack *s);
+int push(StringStack *s, const char *str);
+char* pop(StringStack *s);
+int isStackEmpty(const StringStack *s);
+void freeStack(StringStack *s);
+
+void shuffleStrings(char **arr, int n);
+void readConceptFile(const char *filename, KpopConcept *data, int *count);
+void defineConcept(void);
+
+// ===== Queue Functions =====
+void initQueue(StringQueue *q) {
+    q->front = 0;
+    q->rear = -1;
+    q->size = 0;
+    for (int i = 0; i < MAX_QUEUE_SIZE; i++) {
+        q->items[i] = NULL;
+    }
+}
+
+int enqueue(StringQueue *q, const char *str) {
+    if (q->size == MAX_QUEUE_SIZE) return 0; // full
+    q->rear = (q->rear + 1) % MAX_QUEUE_SIZE;
+    q->items[q->rear] = malloc(strlen(str) + 1);
+    if (!q->items[q->rear]) return 0;
+    strcpy(q->items[q->rear], str);
+    q->size++;
+    return 1;
+}
+
+char* dequeue(StringQueue *q) {
+    if (q->size == 0) return NULL;
+    char *ret = q->items[q->front];
+    q->items[q->front] = NULL;
+    q->front = (q->front + 1) % MAX_QUEUE_SIZE;
+    q->size--;
+    return ret;
+}
+
+int isQueueEmpty(const StringQueue *q) {
+    return q->size == 0;
+}
+
+void freeQueue(StringQueue *q) {
+    for (int i = 0; i < MAX_QUEUE_SIZE; i++) {
+        if (q->items[i]) free(q->items[i]);
+        q->items[i] = NULL;
+    }
+    q->size = 0;
+    q->front = 0;
+    q->rear = -1;
+}
+
+// ===== Stack Functions =====
+void initStack(StringStack *s) {
+    s->top = -1;
+    for (int i = 0; i < MAX_QUEUE_SIZE; i++) {
+        s->items[i] = NULL;
+    }
+}
+
+int push(StringStack *s, const char *str) {
+    if (s->top == MAX_QUEUE_SIZE - 1) return 0; // full
+    s->top++;
+    s->items[s->top] = malloc(strlen(str) + 1);
+    if (!s->items[s->top]) return 0;
+    strcpy(s->items[s->top], str);
+    return 1;
+}
+
+char* pop(StringStack *s) {
+    if (s->top == -1) return NULL;
+    char *ret = s->items[s->top];
+    s->items[s->top] = NULL;
+    s->top--;
+    return ret;
+}
+
+int isStackEmpty(const StringStack *s) {
+    return s->top == -1;
+}
+
+void freeStack(StringStack *s) {
+    for (int i = 0; i <= s->top; i++) {
+        if (s->items[i]) free(s->items[i]);
+        s->items[i] = NULL;
+    }
+    s->top = -1;
+}
+
+// ===== Utility =====
+void shuffleStrings(char **arr, int n) {
+    for (int i = n - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        char *temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+}
+
+void readConceptFile(const char *filename, KpopConcept *data, int *count) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        printf("Failed to open concept file.\n");
+        *count = 0;
+        return;
+    }
+    *count = 0;
+    char line[MAX_STR_LEN * 3];
+    while (fgets(line, sizeof(line), fp) && *count < MAX_DATA) {
+        // Expect format: group|concept|description\n
+        char *p = strchr(line, '\n');
+        if (p) *p = 0;
+        char *token = strtok(line, "|");
+        if (!token) continue;
+        strncpy(data[*count].group, token, MAX_STR_LEN - 1);
+        token = strtok(NULL, "|");
+        if (!token) continue;
+        strncpy(data[*count].concept, token, MAX_STR_LEN - 1);
+        token = strtok(NULL, "|");
+        if (!token) continue;
+        strncpy(data[*count].description, token, MAX_STR_LEN - 1);
+        (*count)++;
+    }
+    fclose(fp);
+}
+
+void defineConcept(void) {
+    KpopConcept concepts[MAX_DATA];
+    int totalCount = 0;
+    readConceptFile("concept.txt", concepts, &totalCount);
+    if (totalCount == 0) {
+        printf("No concept data available.\n");
+        return;
+    }
+
+    int extractCount = 0;
+    printf("추출할 데이터 개수를 입력하세요 (최대 %d): ", totalCount < MAX_QUEUE_SIZE ? totalCount : MAX_QUEUE_SIZE);
+    if (scanf("%d", &extractCount) != 1 || extractCount <= 0 || extractCount > totalCount || extractCount > MAX_QUEUE_SIZE) {
+        printf("잘못된 입력입니다.\n");
+        while(getchar() != '\n');
+        return;
+    }
+    while(getchar() != '\n');
+
+    srand((unsigned int)time(NULL));
+
+    // Pick random unique indices
+    int indices[MAX_QUEUE_SIZE];
+    int picked = 0;
+    while (picked < extractCount) {
+        int r = rand() % totalCount;
+        int duplicate = 0;
+        for (int i = 0; i < picked; i++) {
+            if (indices[i] == r) {
+                duplicate = 1;
+                break;
+            }
+        }
+        if (!duplicate) indices[picked++] = r;
+    }
+
+    // Prepare group and concept arrays for shuffle
+    char *groups[MAX_QUEUE_SIZE];
+    char *conceptsArr[MAX_QUEUE_SIZE];
+    for (int i = 0; i < extractCount; i++) {
+        groups[i] = concepts[indices[i]].group;
+        conceptsArr[i] = concepts[indices[i]].concept;
+    }
+
+    // Shuffle groups and concepts independently for mismatch
+    shuffleStrings(groups, extractCount);
+    shuffleStrings(conceptsArr, extractCount);
+
+    // Queues for groups and concepts
+    StringQueue groupQueue, conceptQueue;
+    initQueue(&groupQueue);
+    initQueue(&conceptQueue);
+
+    for (int i = 0; i < extractCount; i++) {
+        enqueue(&groupQueue, groups[i]);
+        enqueue(&conceptQueue, conceptsArr[i]);
+    }
+
+    printf("\n## Mismatched Group and Concept ##\n");
+    for (int i = 0; i < extractCount; i++) {
+        printf("%d. Group Queue: %s  Concept Queue: %s\n", i + 1, groupQueue.items[(groupQueue.front + i) % MAX_QUEUE_SIZE], conceptQueue.items[(conceptQueue.front + i) % MAX_QUEUE_SIZE]);
+    }
+
+    printf("\n큐(1) 또는 스택(2) 중 선택하여 데이터를 맞추세요: ");
+    int dsType = 0;
+    if (scanf("%d", &dsType) != 1 || (dsType != 1 && dsType != 2)) {
+        printf("잘못된 입력입니다.\n");
+        freeQueue(&groupQueue);
+        freeQueue(&conceptQueue);
+        while(getchar() != '\n');
+        return;
+    }
+    while(getchar() != '\n');
+
+    // Prepare temp data structures for matching
+    if (dsType == 1) {
+        // Use Queues
+        StringQueue tempGroupQ, tempConceptQ;
+        initQueue(&tempGroupQ);
+        initQueue(&tempConceptQ);
+
+        // Copy original queues to temp queues
+        for (int i = 0; i < extractCount; i++) {
+            enqueue(&tempGroupQ, groupQueue.items[(groupQueue.front + i) % MAX_QUEUE_SIZE]);
+            enqueue(&tempConceptQ, conceptQueue.items[(conceptQueue.front + i) % MAX_QUEUE_SIZE]);
+        }
+
+        int correct = 0, total = 0;
+        clock_t start = clock();
+        while (!isQueueEmpty(&tempGroupQ) && !isQueueEmpty(&tempConceptQ)) {
+            char *g = dequeue(&tempGroupQ);
+            char *c = dequeue(&tempConceptQ);
+            printf("\n'%s' 그룹과 '%s' 컨셉이 맞습니까? (y/n): ", g, c);
+            char answer = getchar();
+            while(getchar() != '\n');
+            total++;
+            // Check if correct match by original data
+            int match = 0;
+            for (int i = 0; i < totalCount; i++) {
+                if (strcmp(g, concepts[i].group) == 0 && strcmp(c, concepts[i].concept) == 0) {
+                    match = 1;
+                    break;
+                }
+            }
+            if ((answer == 'y' && match) || (answer == 'n' && !match)) {
+                printf("정답!\n");
+                correct++;
+            } else {
+                printf("오답!\n");
+            }
+            free(g);
+            free(c);
+        }
+        clock_t end = clock();
+        printf("\n매칭 완료. 총 %d문제 중 %d문제 정답.\n", total, correct);
+        printf("걸린 시간: %.3f초\n", (double)(end - start) / CLOCKS_PER_SEC);
+        freeQueue(&tempGroupQ);
+        freeQueue(&tempConceptQ);
+    } else {
+        // Use Stacks
+        StringStack groupStack, conceptStack;
+        initStack(&groupStack);
+        initStack(&conceptStack);
+
+        // Push shuffled data to stacks
+        for (int i = extractCount - 1; i >= 0; i--) {
+            push(&groupStack, groups[i]);
+            push(&conceptStack, conceptsArr[i]);
+        }
+
+        int correct = 0, total = 0;
+        clock_t start = clock();
+
+        while (!isStackEmpty(&groupStack) && !isStackEmpty(&conceptStack)) {
+            char *g = pop(&groupStack);
+            char *c = pop(&conceptStack);
+            printf("\n'%s' 그룹과 '%s' 컨셉이 맞습니까? (y/n): ", g, c);
+            char answer = getchar();
+            while(getchar() != '\n');
+            total++;
+            int match = 0;
+            for (int i = 0; i < totalCount; i++) {
+                if (strcmp(g, concepts[i].group) == 0 && strcmp(c, concepts[i].concept) == 0) {
+                    match = 1;
+                    break;
+                }
+            }
+            if ((answer == 'y' && match) || (answer == 'n'
