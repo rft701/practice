@@ -1,0 +1,204 @@
+// debut.h
+#ifndef DEBUT_H
+#define DEBUT_H
+
+#define MAX_PRODUCT_NAME_LEN 100
+
+typedef struct {
+    int month;
+    double remaining;
+    double principal;
+    double interest;
+    double monthlyPayment;
+} PaymentInfo;
+
+typedef struct PaymentNode {
+    PaymentInfo info;
+    struct PaymentNode* next;
+} PaymentNode;
+
+typedef struct {
+    PaymentNode* front;
+    PaymentNode* rear;
+    int size;
+} PaymentQueue;
+
+void studyMoney(void);
+
+#endif
+
+// debut.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "debut.h"
+
+static void initQueue(PaymentQueue* q) {
+    q->front = q->rear = NULL;
+    q->size = 0;
+}
+
+static int isQueueEmpty(PaymentQueue* q) {
+    return q->front == NULL;
+}
+
+static void enqueue(PaymentQueue* q, PaymentInfo info) {
+    PaymentNode* node = (PaymentNode*)malloc(sizeof(PaymentNode));
+    if (!node) return;
+    node->info = info;
+    node->next = NULL;
+    if (q->rear == NULL) {
+        q->front = q->rear = node;
+    } else {
+        q->rear->next = node;
+        q->rear = node;
+    }
+    q->size++;
+}
+
+static int dequeue(PaymentQueue* q, PaymentInfo* info) {
+    if (isQueueEmpty(q)) return 0;
+    PaymentNode* temp = q->front;
+    *info = temp->info;
+    q->front = q->front->next;
+    if (q->front == NULL) q->rear = NULL;
+    free(temp);
+    q->size--;
+    return 1;
+}
+
+static void printQueue(PaymentQueue* q) {
+    if (isQueueEmpty(q)) {
+        printf("현재 납부할 항목이 없습니다.\n");
+        return;
+    }
+    printf("\n[월별 납부 정보 큐 상태]\n");
+    printf("납부월 | 할부잔액     | 원금         | 수수료      | 월납부액\n");
+    printf("----------------------------------------------------------\n");
+    PaymentNode* curr = q->front;
+    while (curr) {
+        PaymentInfo* p = &curr->info;
+        printf("%4d  | %12.2f | %12.2f | %10.2f | %9.2f\n",
+               p->month, p->remaining, p->principal, p->interest, p->monthlyPayment);
+        curr = curr->next;
+    }
+    printf("----------------------------------------------------------\n");
+}
+
+void studyMoney(void) {
+    char productName[MAX_PRODUCT_NAME_LEN];
+    double principal, interestRate;
+    int months;
+
+    printf("[할부 결제 시뮬레이션]\n");
+    printf("구매 상품명 입력: ");
+    fgets(productName, sizeof(productName), stdin);
+    size_t len = strlen(productName);
+    if (len > 0 && productName[len - 1] == '\n') productName[len - 1] = '\0';
+
+    printf("원금 입력 (예: 1000000): ");
+    if (scanf("%lf", &principal) != 1 || principal <= 0) {
+        printf("잘못된 원금 입력\n");
+        while(getchar() != '\n'); return;
+    }
+
+    printf("할부 개월 수 입력 (예: 12): ");
+    if (scanf("%d", &months) != 1 || months <= 0) {
+        printf("잘못된 개월 수 입력\n");
+        while(getchar() != '\n'); return;
+    }
+
+    printf("할부 수수료율 입력 (%% 단위, 예: 5.0): ");
+    if (scanf("%lf", &interestRate) != 1 || interestRate < 0) {
+        printf("잘못된 수수료율 입력\n");
+        while(getchar() != '\n'); return;
+    }
+    while(getchar() != '\n');
+
+    double totalInterest = principal * (interestRate / 100.0);
+    double totalAmount = principal + totalInterest;
+    double monthlyPayment = totalAmount / months;
+
+    PaymentQueue queue;
+    initQueue(&queue);
+
+    double remaining = totalAmount;
+
+    for (int i = 1; i <= months; i++) {
+        PaymentInfo info;
+        info.month = i;
+        info.remaining = remaining;
+        info.principal = principal / months;
+        info.interest = totalInterest / months;
+        info.monthlyPayment = monthlyPayment;
+
+        enqueue(&queue, info);
+
+        remaining -= monthlyPayment;
+        if (remaining < 0) remaining = 0.0;
+    }
+
+    printf("\n=== %s 할부 결제 정보 ===\n", productName);
+    printQueue(&queue);
+
+    char command[10];
+    while (queue.size > 0) {
+        printf("\n납부를 진행하시겠습니까? (yes/no): ");
+        fgets(command, sizeof(command), stdin);
+        if (strncmp(command, "yes", 3) == 0) {
+            PaymentInfo paid;
+            if (dequeue(&queue, &paid)) {
+                printf("\n%d개월차 납부 완료\n", paid.month);
+                printQueue(&queue);
+            }
+        } else {
+            printf("납부 시뮬레이션 종료\n");
+            break;
+        }
+    }
+    if (queue.size == 0) {
+        printf("\n모든 할부 납부가 완료되었습니다.\n");
+    }
+}
+
+// menu.c
+#include "debut.h"
+#include <stdio.h>
+
+void showMenu(void) {
+    int choice;
+    do {
+        printf("\n[III. 데뷔 > 돈 공부]\n");
+        printf("1. 신용 카드 할부 시뮬레이션\n");
+        printf("0. 종료\n");
+        printf("선택: ");
+        if (scanf("%d", &choice) != 1) {
+            while(getchar() != '\n');
+            printf("잘못된 입력\n");
+            continue;
+        }
+        while(getchar() != '\n');
+
+        switch(choice) {
+            case 1:
+                studyMoney();
+                break;
+            case 0:
+                printf("프로그램 종료\n");
+                break;
+            default:
+                printf("잘못된 선택\n");
+        }
+    } while (choice != 0);
+}
+
+// magrathea.c
+#include <stdio.h>
+
+void showMenu(void);
+
+int main(void) {
+    printf("=== 아이돌 연습생 데뷔 시뮬레이션 ===\n");
+    showMenu();
+    return 0;
+}
